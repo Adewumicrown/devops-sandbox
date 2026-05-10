@@ -1,0 +1,48 @@
+networks:
+  sandbox-platform:
+    name: sandbox-platform
+    driver: bridge
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: ${NGINX_CONTAINER_NAME:-sandbox-nginx}
+    ports:
+      - "${NGINX_PORT:-8080}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    networks:
+      - sandbox-platform
+    restart: unless-stopped
+    labels:
+      sandbox.system: "true"
+      sandbox.role: "nginx"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/platform/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  api:
+    build:
+      context: .
+      dockerfile: platform/Dockerfile.api
+    container_name: sandbox-api
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      - ./platform:/app/platform
+      - ./envs:/app/envs
+      - ./logs:/app/logs
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - NGINX_CONTAINER_NAME=${NGINX_CONTAINER_NAME:-sandbox-nginx}
+    networks:
+      - sandbox-platform
+    depends_on:
+      - nginx
+    restart: unless-stopped
+    labels:
+      sandbox.system: "true"
+      sandbox.role: "api"
