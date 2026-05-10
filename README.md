@@ -41,7 +41,7 @@ User / CI             │   ┌─────────┐      ┌───�
 ## Quick Start
 
 ```bash
-git clone https://github.com/yourname/devops-sandbox
+git clone https://github.com/adewumicrown/devops-sandbox
 cd devops-sandbox
 cp .env.example .env
 docker build -t sandbox-demo-app app/
