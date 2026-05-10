@@ -4,12 +4,20 @@ export
 .PHONY: up down create destroy logs health simulate clean
 
 up:
-	@echo "▶ Starting Nginx, cleanup daemon, health poller, and API..."
-	@echo "TODO: implement"
+	bash platform/start.sh
 
 down:
-	@echo "▶ Stopping everything and destroying all envs..."
-	@echo "TODO: implement"
+	@echo "▶ Stopping platform..."
+	@for f in envs/*.json; do \
+		[ -f "$$f" ] || continue; \
+		id=$$(python3 -c "import json; print(json.load(open('$$f'))['id'])"); \
+		bash platform/destroy_env.sh "$$id"; \
+	done
+	@pkill -f cleanup_daemon.sh 2>/dev/null || true
+	@pkill -f poller.py 2>/dev/null || true
+	@pkill -f sandbox_api 2>/dev/null || true
+	@docker compose down
+	@echo "✅ Platform down"
 
 create:
 	@read -p "Env name: " name; \
@@ -26,15 +34,25 @@ logs:
 	@tail -f logs/$(ENV)/app.log
 
 health:
-	@echo "▶ Health status of all active environments:"
-	@echo "TODO: implement"
+	@echo "ENV ID             NAME         STATUS     TTL LEFT"
+	@echo "─────────────────────────────────────────────────────"
+	@for f in envs/*.json; do \
+		[ -f "$$f" ] || continue; \
+		python3 -c "\
+import json, time; \
+d=json.load(open('$$f')); \
+left=max(0,(d['created_at']+d['ttl'])-int(time.time())); \
+print(f\"{d['id']:<18} {d['name']:<12} {d['status']:<10} {left}s\") \
+"; \
+	done
 
 simulate:
-	@[ -n "$(ENV)" ] || (echo "❌ Usage: make simulate ENV=<env-id> MODE=<mode>" && exit 1)
+	@[ -n "$(ENV)" ] || (echo "❌ Usage: make simulate ENV=<env-id> MODE=<crash|pause|network|recover>" && exit 1)
 	@[ -n "$(MODE)" ] || (echo "❌ MODE required: crash|pause|network|recover|stress" && exit 1)
 	@bash platform/simulate_outage.sh --env "$(ENV)" --mode "$(MODE)"
 
 clean:
 	@echo "▶ Wiping all state, logs, and archives..."
 	@rm -rf logs/* envs/*
+	@mkdir -p logs/archived
 	@echo "✅ Cleaned"

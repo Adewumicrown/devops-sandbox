@@ -8,7 +8,8 @@ services:
     image: nginx:alpine
     container_name: ${NGINX_CONTAINER_NAME:-sandbox-nginx}
     ports:
-      - "${NGINX_PORT:-8080}:80"
+      - "${NGINX_PORT:-8888}:80"
+      - "21000-21100:21000-21100"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro

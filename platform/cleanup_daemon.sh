@@ -18,9 +18,11 @@ while true; do
   for STATE_FILE in "$ROOT_DIR"/envs/*.json; do
     [ -f "$STATE_FILE" ] || continue
 
-    ENV_ID=$(python3 -c "import json; d=json.load(open('$STATE_FILE')); print(d['id'])")
-    CREATED_AT=$(python3 -c "import json; d=json.load(open('$STATE_FILE')); print(d['created_at'])")
-    TTL=$(python3 -c "import json; d=json.load(open('$STATE_FILE')); print(d['ttl'])")
+    ENV_ID=$(python3 -c "import json; d=json.load(open('$STATE_FILE')); print(d['id'])" 2>/dev/null || echo "")
+    [ -n "$ENV_ID" ] || continue
+
+    CREATED_AT=$(python3 -c "import json; d=json.load(open('$STATE_FILE')); print(d['created_at'])" 2>/dev/null || echo "0")
+    TTL=$(python3 -c "import json; d=json.load(open('$STATE_FILE')); print(d['ttl'])" 2>/dev/null || echo "0")
     EXPIRES_AT=$((CREATED_AT + TTL))
 
     if [ "$NOW" -ge "$EXPIRES_AT" ]; then
